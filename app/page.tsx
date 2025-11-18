@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react'
 // Data Model & Types
 type Cycle = 'Monthly' | 'Annually'
 type Status = 'Active' | 'Trial'
+type Category = 'Software' | 'Shopping' | 'Design' | 'Storage' | 'Entertainment'
 
 interface Subscription {
   id: string
@@ -13,6 +14,40 @@ interface Subscription {
   renewalDate: Date
   cycle: Cycle
   status: Status
+  category: Category
+}
+
+// Category Icons
+const CategoryIcon = ({ category, className = "w-5 h-5" }: { category: Category; className?: string }) => {
+  const icons = {
+    Software: (
+      <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
+      </svg>
+    ),
+    Shopping: (
+      <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+      </svg>
+    ),
+    Design: (
+      <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
+      </svg>
+    ),
+    Storage: (
+      <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" />
+      </svg>
+    ),
+    Entertainment: (
+      <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+    ),
+  }
+  return icons[category]
 }
 
 // LocalStorage Utilities
@@ -36,7 +71,8 @@ const loadSubscriptions = (): Subscription[] => {
     const parsed = JSON.parse(stored)
     return parsed.map((sub: any) => ({
       ...sub,
-      renewalDate: new Date(sub.renewalDate)
+      renewalDate: new Date(sub.renewalDate),
+      category: sub.category || 'Software' // Default to Software for backward compatibility
     }))
   } catch {
     return []
@@ -51,7 +87,8 @@ export default function Home() {
     cost: '',
     renewalDate: '',
     cycle: 'Monthly' as Cycle,
-    status: 'Active' as Status
+    status: 'Active' as Status,
+    category: 'Software' as Category
   })
   const [formErrors, setFormErrors] = useState<Record<string, string>>({})
 
@@ -80,13 +117,40 @@ export default function Home() {
     }, 0)
   }
 
-  // Find Upcoming Renewal (within 5 days)
-  const findUpcomingRenewal = (): { name: string; date: Date } | null => {
+  // Count subscriptions by cycle
+  const getSubscriptionCounts = () => {
+    const activeSubs = subscriptions.filter(sub => sub.status === 'Active')
+    const monthly = activeSubs.filter(sub => sub.cycle === 'Monthly').length
+    const annual = activeSubs.filter(sub => sub.cycle === 'Annually').length
+    return { monthly, annual }
+  }
+
+  // Calculate spending per category
+  const getSpendingByCategory = (): Record<Category, number> => {
+    const activeSubs = subscriptions.filter(sub => sub.status === 'Active')
+    const categorySpending: Record<Category, number> = {
+      Software: 0,
+      Shopping: 0,
+      Design: 0,
+      Storage: 0,
+      Entertainment: 0
+    }
+
+    activeSubs.forEach(sub => {
+      const monthlyCost = sub.cycle === 'Monthly' ? sub.cost : sub.cost / 12
+      categorySpending[sub.category] += monthlyCost
+    })
+
+    return categorySpending
+  }
+
+  // Find Upcoming Renewals (within 7 days)
+  const findUpcomingRenewals = (): Subscription[] => {
     const today = new Date()
     today.setHours(0, 0, 0, 0)
     
-    const fiveDaysFromNow = new Date(today)
-    fiveDaysFromNow.setDate(today.getDate() + 5)
+    const sevenDaysFromNow = new Date(today)
+    sevenDaysFromNow.setDate(today.getDate() + 7)
 
     const activeSubs = subscriptions.filter(sub => sub.status === 'Active')
     const upcomingRenewals = activeSubs
@@ -99,17 +163,15 @@ export default function Home() {
         }
       })
       .filter(sub => {
-        return sub.renewalDateNormalized >= today && sub.renewalDateNormalized <= fiveDaysFromNow
+        return sub.renewalDateNormalized >= today && sub.renewalDateNormalized <= sevenDaysFromNow
       })
       .sort((a, b) => a.renewalDateNormalized.getTime() - b.renewalDateNormalized.getTime())
+      .map(sub => {
+        const { renewalDateNormalized, ...rest } = sub
+        return rest
+      })
 
-    if (upcomingRenewals.length === 0) return null
-
-    const nearest = upcomingRenewals[0]
-    return {
-      name: nearest.name,
-      date: new Date(nearest.renewalDate)
-    }
+    return upcomingRenewals
   }
 
   // Format date for display
@@ -177,7 +239,8 @@ export default function Home() {
       cost: parseFloat(formData.cost),
       renewalDate: new Date(formData.renewalDate),
       cycle: formData.cycle,
-      status: formData.status
+      status: formData.status,
+      category: formData.category
     }
 
     setSubscriptions(prev => [...prev, newSubscription])
@@ -188,7 +251,8 @@ export default function Home() {
       cost: '',
       renewalDate: '',
       cycle: 'Monthly',
-      status: 'Active'
+      status: 'Active',
+      category: 'Software'
     })
     setFormErrors({})
     setIsModalOpen(false)
@@ -202,13 +266,16 @@ export default function Home() {
       cost: '',
       renewalDate: '',
       cycle: 'Monthly',
-      status: 'Active'
+      status: 'Active',
+      category: 'Software'
     })
     setFormErrors({})
   }
 
   const totalMonthlyCost = calculateTotalMonthlyCost()
-  const upcomingRenewal = findUpcomingRenewal()
+  const subscriptionCounts = getSubscriptionCounts()
+  const categorySpending = getSpendingByCategory()
+  const upcomingRenewals = findUpcomingRenewals()
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -227,25 +294,24 @@ export default function Home() {
 
       {/* Main Content */}
       <main className="max-w-6xl mx-auto px-4 py-8">
-        {/* Summary Section */}
-        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Summary</h2>
-          <div className="space-y-3">
-            <div>
-              <span className="text-gray-600">Total Monthly Cost: </span>
-              <span className="text-xl font-bold text-gray-900">
+        {/* Total Monthly Spend Section */}
+        <div className="bg-white rounded-lg shadow-sm p-8 mb-6">
+          <div className="text-center">
+            <div className="mb-2">
+              <span className="text-gray-600 text-lg">Total Monthly Spend</span>
+            </div>
+            <div className="mb-6">
+              <span className="text-5xl font-bold text-gray-900">
                 ₹{totalMonthlyCost.toFixed(2)}
               </span>
             </div>
-            <div>
-              <span className="text-gray-600">Upcoming Renewal Alert: </span>
-              {upcomingRenewal ? (
-                <span className="text-lg font-semibold text-orange-600">
-                  {upcomingRenewal.name} - {formatDate(upcomingRenewal.date)}
-                </span>
-              ) : (
-                <span className="text-gray-500">No upcoming renewals</span>
-              )}
+            <div className="flex justify-center gap-6 text-sm text-gray-600">
+              <div>
+                <span className="font-semibold text-gray-900">{subscriptionCounts.monthly}</span> Monthly
+              </div>
+              <div>
+                <span className="font-semibold text-gray-900">{subscriptionCounts.annual}</span> Annual
+              </div>
             </div>
           </div>
         </div>
@@ -269,6 +335,9 @@ export default function Home() {
                       Name
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Category
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Cost (₹)
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -287,6 +356,12 @@ export default function Home() {
                     <tr key={sub.id} className="hover:bg-gray-50">
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                         {sub.name}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center gap-2 text-sm text-gray-900">
+                          <CategoryIcon category={sub.category} className="w-4 h-4 text-gray-600" />
+                          <span>{sub.category}</span>
+                        </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         ₹{sub.cost.toFixed(2)}
@@ -310,6 +385,67 @@ export default function Home() {
                   ))}
                 </tbody>
               </table>
+            </div>
+          )}
+        </div>
+
+        {/* Monthly Spending by Category */}
+        <div className="bg-white rounded-lg shadow-sm overflow-hidden mt-6">
+          <div className="px-6 py-4 border-b">
+            <h2 className="text-lg font-semibold text-gray-900">Monthly Spending by Category</h2>
+          </div>
+          <div className="p-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
+              {(Object.keys(categorySpending) as Category[]).map((category) => {
+                const spending = categorySpending[category]
+                if (spending === 0) return null
+                return (
+                  <div key={category} className="flex items-center gap-3 p-4 bg-gray-50 rounded-lg">
+                    <CategoryIcon category={category} className="w-6 h-6 text-gray-700" />
+                    <div>
+                      <div className="text-xs text-gray-600">{category}</div>
+                      <div className="text-sm font-semibold text-gray-900">₹{spending.toFixed(2)}</div>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+            {Object.values(categorySpending).every(v => v === 0) && (
+              <div className="text-center text-gray-500 py-8">
+                No spending by category yet
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Upcoming Renewals */}
+        <div className="bg-white rounded-lg shadow-sm overflow-hidden mt-6">
+          <div className="px-6 py-4 border-b">
+            <h2 className="text-lg font-semibold text-gray-900">Upcoming Renewals</h2>
+          </div>
+          {upcomingRenewals.length === 0 ? (
+            <div className="px-6 py-12 text-center text-gray-500">
+              No renewals in the next 7 days
+            </div>
+          ) : (
+            <div className="p-6">
+              <div className="space-y-3">
+                {upcomingRenewals.map((sub) => (
+                  <div key={sub.id} className="flex items-center justify-between p-4 bg-orange-50 border border-orange-200 rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <CategoryIcon category={sub.category} className="w-5 h-5 text-orange-600" />
+                      <div>
+                        <div className="font-medium text-gray-900">{sub.name}</div>
+                        <div className="text-sm text-gray-600">{sub.category}</div>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="font-semibold text-gray-900">₹{sub.cost.toFixed(2)}</div>
+                      <div className="text-sm text-orange-600 font-medium">{formatDate(sub.renewalDate)}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </div>
@@ -426,6 +562,39 @@ export default function Home() {
                   <option value="Active">Active</option>
                   <option value="Trial">Trial</option>
                 </select>
+              </div>
+
+              {/* Category */}
+              <div>
+                <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-1">
+                  Category *
+                </label>
+                <div className="grid grid-cols-5 gap-2">
+                  {(['Software', 'Shopping', 'Design', 'Storage', 'Entertainment'] as Category[]).map((cat) => (
+                    <button
+                      key={cat}
+                      type="button"
+                      onClick={() => {
+                        setFormData(prev => ({ ...prev, category: cat }))
+                        if (formErrors.category) {
+                          setFormErrors(prev => {
+                            const newErrors = { ...prev }
+                            delete newErrors.category
+                            return newErrors
+                          })
+                        }
+                      }}
+                      className={`flex flex-col items-center gap-1 p-3 border-2 rounded-lg transition-colors ${
+                        formData.category === cat
+                          ? 'border-blue-600 bg-blue-50'
+                          : 'border-gray-300 hover:border-gray-400'
+                      }`}
+                    >
+                      <CategoryIcon category={cat} className="w-5 h-5" />
+                      <span className="text-xs font-medium">{cat}</span>
+                    </button>
+                  ))}
+                </div>
               </div>
 
               {/* Form Actions */}
