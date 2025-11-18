@@ -416,25 +416,60 @@ export default function Dashboard() {
 
       {/* Main Content */}
       <main className="max-w-6xl mx-auto px-4 py-8">
-        {/* Total Monthly Spend Section */}
-        <div className="bg-gradient-to-br from-blue-600 to-indigo-600 rounded-2xl shadow-xl p-8 mb-6 text-white">
-          <div className="text-center">
-            <div className="mb-2">
-              <span className="text-blue-100 text-lg">Total Monthly Spend</span>
-            </div>
-            <div className="mb-6">
-              <span className="text-6xl font-bold">
-                ₹{totalMonthlyCost.toFixed(2)}
-              </span>
-            </div>
-            <div className="flex justify-center gap-6 text-sm text-blue-100">
-              <div>
-                <span className="font-semibold text-white">{subscriptionCounts.monthly}</span> Monthly
+        {/* Summary and Upcoming Renewals - Side by Side */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+          {/* Total Monthly Spend Section */}
+          <div className="bg-gradient-to-br from-blue-600 to-indigo-600 rounded-2xl shadow-xl p-8 text-white">
+            <div className="text-center">
+              <div className="mb-2">
+                <span className="text-blue-100 text-lg">Total Monthly Spend</span>
               </div>
-              <div>
-                <span className="font-semibold text-white">{subscriptionCounts.annual}</span> Annual
+              <div className="mb-6">
+                <span className="text-5xl font-bold">
+                  ₹{totalMonthlyCost.toFixed(2)}
+                </span>
+              </div>
+              <div className="flex justify-center gap-6 text-sm text-blue-100">
+                <div>
+                  <span className="font-semibold text-white">{subscriptionCounts.monthly}</span> Monthly
+                </div>
+                <div>
+                  <span className="font-semibold text-white">{subscriptionCounts.annual}</span> Annual
+                </div>
               </div>
             </div>
+          </div>
+
+          {/* Upcoming Renewals */}
+          <div className="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-200">
+            <div className="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-gray-50 to-gray-100">
+              <h2 className="text-lg font-semibold text-gray-900">Upcoming Renewals</h2>
+            </div>
+            {upcomingRenewals.length === 0 ? (
+              <div className="px-6 py-12 text-center text-gray-500">
+                No renewals in the next 7 days
+              </div>
+            ) : (
+              <div className="p-6">
+                <div className="space-y-3">
+                  {upcomingRenewals.map((sub) => (
+                    <div key={sub.id} className="flex items-center justify-between p-4 bg-gradient-to-r from-orange-50 to-amber-50 border border-orange-200 rounded-lg hover:shadow-md transition-shadow">
+                      <div className="flex items-center gap-3">
+                        <CategoryIcon category={sub.category} className="w-5 h-5" />
+                        <div>
+                          <div className="font-medium text-gray-900">{sub.name}</div>
+                          <div className="text-sm text-gray-600">{sub.category}</div>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="font-semibold text-gray-900">₹{sub.cost.toFixed(2)}</div>
+                        <div className="text-sm text-orange-600 font-medium">{formatDate(sub.renewalDate)}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -565,37 +600,6 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Upcoming Renewals */}
-        <div className="bg-white rounded-xl shadow-lg overflow-hidden mt-6 border border-gray-200">
-          <div className="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-gray-50 to-gray-100">
-            <h2 className="text-lg font-semibold text-gray-900">Upcoming Renewals</h2>
-          </div>
-          {upcomingRenewals.length === 0 ? (
-            <div className="px-6 py-12 text-center text-gray-500">
-              No renewals in the next 7 days
-            </div>
-          ) : (
-            <div className="p-6">
-              <div className="space-y-3">
-                {upcomingRenewals.map((sub) => (
-                  <div key={sub.id} className="flex items-center justify-between p-4 bg-gradient-to-r from-orange-50 to-amber-50 border border-orange-200 rounded-lg hover:shadow-md transition-shadow">
-                    <div className="flex items-center gap-3">
-                      <CategoryIcon category={sub.category} className="w-5 h-5" />
-                      <div>
-                        <div className="font-medium text-gray-900">{sub.name}</div>
-                        <div className="text-sm text-gray-600">{sub.category}</div>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <div className="font-semibold text-gray-900">₹{sub.cost.toFixed(2)}</div>
-                      <div className="text-sm text-orange-600 font-medium">{formatDate(sub.renewalDate)}</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
       </main>
 
       {/* Delete Confirmation Modal */}
