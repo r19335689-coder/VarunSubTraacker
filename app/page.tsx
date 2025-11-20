@@ -2,12 +2,20 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { signInWithGoogle, isAuthenticated } from './lib/auth'
+import { signInWithGoogle, isAuthenticated, loginUser, registerUser } from './lib/auth'
 
 export default function LandingPage() {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [showTempLogin, setShowTempLogin] = useState(false)
+  const [isSignUp, setIsSignUp] = useState(false)
+  const [formData, setFormData] = useState({
+    username: '',
+    password: '',
+    confirmPassword: '',
+    fullName: ''
+  })
 
   useEffect(() => {
     // Redirect if already authenticated
@@ -29,6 +37,37 @@ export default function LandingPage() {
       }
     } catch (err) {
       setError('An error occurred. Please try again.')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleTempLogin = (e: React.FormEvent) => {
+    e.preventDefault()
+    setError(null)
+    setIsLoading(true)
+
+    try {
+      if (isSignUp) {
+        const result = registerUser(formData.username, formData.password, formData.fullName || undefined)
+        if (result.success) {
+          const loginResult = loginUser(formData.username, formData.password)
+          if (loginResult.success) {
+            router.push('/dashboard')
+          } else {
+            setError(loginResult.error || 'Failed to log in')
+          }
+        } else {
+          setError(result.error || 'Registration failed')
+        }
+      } else {
+        const result = loginUser(formData.username, formData.password)
+        if (result.success) {
+          router.push('/dashboard')
+        } else {
+          setError(result.error || 'Login failed')
+        }
+      }
     } finally {
       setIsLoading(false)
     }
@@ -74,6 +113,128 @@ export default function LandingPage() {
             </svg>
             {isLoading ? 'Signing in...' : 'Sign in with Google'}
           </button>
+
+          <div className="relative my-6">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-gray-700"></div>
+            </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="px-2 bg-gray-900 text-gray-500">or</span>
+            </div>
+          </div>
+
+          <button
+            onClick={() => setShowTempLogin(!showTempLogin)}
+            className="w-full text-pastel-blue hover:text-pastel-blue-light text-sm font-medium py-2 transition-colors"
+          >
+            {showTempLogin ? 'Hide' : 'Use temporary login'} (for testing)
+          </button>
+
+          {showTempLogin && (
+            <form onSubmit={handleTempLogin} className="mt-4 space-y-4">
+              <div className="flex gap-2 mb-4">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsSignUp(false)
+                    setError(null)
+                  }}
+                  className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-colors ${
+                    !isSignUp
+                      ? 'bg-pastel-blue text-black'
+                      : 'bg-gray-800 text-gray-300'
+                  }`}
+                >
+                  Sign In
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsSignUp(true)
+                    setError(null)
+                  }}
+                  className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-colors ${
+                    isSignUp
+                      ? 'bg-pastel-blue text-black'
+                      : 'bg-gray-800 text-gray-300'
+                  }`}
+                >
+                  Sign Up
+                </button>
+              </div>
+
+              {isSignUp && (
+                <div>
+                  <label htmlFor="fullName" className="block text-sm font-medium text-gray-300 mb-2">
+                    Full Name (optional)
+                  </label>
+                  <input
+                    type="text"
+                    id="fullName"
+                    value={formData.fullName}
+                    onChange={(e) => setFormData(prev => ({ ...prev, fullName: e.target.value }))}
+                    className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-pastel-blue focus:border-transparent"
+                    placeholder="Your full name"
+                  />
+                </div>
+              )}
+
+              <div>
+                <label htmlFor="username" className="block text-sm font-medium text-gray-300 mb-2">
+                  Username
+                </label>
+                <input
+                  type="text"
+                  id="username"
+                  value={formData.username}
+                  onChange={(e) => setFormData(prev => ({ ...prev, username: e.target.value }))}
+                  className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-pastel-blue focus:border-transparent"
+                  placeholder="Enter username"
+                  required
+                />
+              </div>
+
+              <div>
+                <label htmlFor="password" className="block text-sm font-medium text-gray-300 mb-2">
+                  Password
+                </label>
+                <input
+                  type="password"
+                  id="password"
+                  value={formData.password}
+                  onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
+                  className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-pastel-blue focus:border-transparent"
+                  placeholder="Enter password"
+                  required
+                />
+              </div>
+
+              {isSignUp && (
+                <div>
+                  <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-300 mb-2">
+                    Confirm Password
+                  </label>
+                  <input
+                    type="password"
+                    id="confirmPassword"
+                    value={formData.confirmPassword}
+                    onChange={(e) => setFormData(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                    className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-pastel-blue focus:border-transparent"
+                    placeholder="Confirm password"
+                    required
+                  />
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="w-full bg-pastel-blue hover:bg-pastel-blue-dark text-black font-semibold py-3 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed touch-target"
+              >
+                {isLoading ? 'Please wait...' : isSignUp ? 'Sign Up' : 'Sign In'}
+              </button>
+            </form>
+          )}
 
           <p className="text-gray-500 text-xs text-center mt-6">
             By signing in, you agree to our Terms of Service and Privacy Policy
