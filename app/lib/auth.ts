@@ -70,7 +70,7 @@ export const signInWithGoogle = async (): Promise<{ success: boolean; error?: st
     if (!supabaseModule) {
       return { success: false, error: 'Supabase not available' }
     }
-    const supabase = supabaseModule.getSupabaseClient()
+    const supabase = await supabaseModule.getSupabaseClient()
     
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
@@ -104,7 +104,7 @@ export const getSupabaseUser = async (): Promise<CurrentUser | null> => {
     if (!supabaseModule) {
       return null
     }
-    const supabase = supabaseModule.getSupabaseClient()
+    const supabase = await supabaseModule.getSupabaseClient()
     
     const { data: { user }, error } = await supabase.auth.getUser()
     
@@ -143,7 +143,7 @@ export const logoutUser = async (): Promise<void> => {
   try {
     const supabaseModule = await import('./supabase-client').catch(() => null)
     if (supabaseModule) {
-      const supabase = supabaseModule.getSupabaseClient()
+      const supabase = await supabaseModule.getSupabaseClient()
       await supabase.auth.signOut()
     }
   } catch (err) {

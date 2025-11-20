@@ -15,7 +15,7 @@ export const loadNotificationSettingsFromDB = async (userId: string): Promise<No
     // Lazy load Supabase only on client
     const supabaseModule = await import('./supabase-client').catch(() => null)
     if (!supabaseModule) return null
-    const supabase = supabaseModule.getSupabaseClient()
+    const supabase = await supabaseModule.getSupabaseClient()
     
     const { data, error } = await supabase
       .from('notification_settings')
@@ -52,7 +52,7 @@ export const saveNotificationSettingsToDB = async (settings: NotificationSetting
     // Lazy load Supabase only on client
     const supabaseModule = await import('./supabase-client').catch(() => null)
     if (!supabaseModule) return false
-    const supabase = supabaseModule.getSupabaseClient()
+    const supabase = await supabaseModule.getSupabaseClient()
     
     // Check if settings exist
     const { data: existing } = await supabase

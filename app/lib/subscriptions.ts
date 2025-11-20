@@ -41,7 +41,7 @@ export const loadSubscriptionsFromDB = async (userId: string): Promise<Subscript
     // Lazy load Supabase only on client
     const supabaseModule = await import('./supabase-client').catch(() => null)
     if (!supabaseModule) return []
-    const supabase = supabaseModule.getSupabaseClient()
+    const supabase = await supabaseModule.getSupabaseClient()
     
     const { data, error } = await supabase
       .from('subscriptions')
@@ -79,7 +79,7 @@ export const saveSubscriptionsToDB = async (subscriptions: Subscription[], userI
     // Lazy load Supabase only on client
     const supabaseModule = await import('./supabase-client').catch(() => null)
     if (!supabaseModule) return false
-    const supabase = supabaseModule.getSupabaseClient()
+    const supabase = await supabaseModule.getSupabaseClient()
     
     // Delete all existing subscriptions for this user
     const { error: deleteError } = await supabase
@@ -129,7 +129,7 @@ export const saveSubscriptionToDB = async (subscription: Subscription, userId: s
     // Lazy load Supabase only on client
     const supabaseModule = await import('./supabase-client').catch(() => null)
     if (!supabaseModule) return false
-    const supabase = supabaseModule.getSupabaseClient()
+    const supabase = await supabaseModule.getSupabaseClient()
     
     const dbSubscription: Omit<DatabaseSubscription, 'created_at' | 'updated_at'> = {
       id: subscription.id,
@@ -196,7 +196,7 @@ export const deleteSubscriptionFromDB = async (subscriptionId: string, userId: s
     // Lazy load Supabase only on client
     const supabaseModule = await import('./supabase-client').catch(() => null)
     if (!supabaseModule) return false
-    const supabase = supabaseModule.getSupabaseClient()
+    const supabase = await supabaseModule.getSupabaseClient()
     
     const { error } = await supabase
       .from('subscriptions')
