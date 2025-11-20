@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { signInWithGoogle, isAuthenticated, loginUser, registerUser } from './lib/auth'
+import { signInWithGoogle, isAuthenticated, loginUser, registerUser, isSupabaseAuthenticated } from './lib/auth'
 
 export default function LandingPage() {
   const router = useRouter()
@@ -18,10 +18,16 @@ export default function LandingPage() {
   })
 
   useEffect(() => {
-    // Redirect if already authenticated
-    if (isAuthenticated()) {
-      router.push('/dashboard')
+    // Check authentication and redirect
+    const checkAuth = async () => {
+      const supabaseAuth = await isSupabaseAuthenticated()
+      const localAuth = isAuthenticated()
+      
+      if (supabaseAuth || localAuth) {
+        router.push('/dashboard')
+      }
     }
+    checkAuth()
   }, [router])
 
   const handleGoogleSignIn = async () => {
@@ -30,14 +36,15 @@ export default function LandingPage() {
     
     try {
       const result = await signInWithGoogle()
-      if (result.success && result.user) {
-        router.push('/dashboard')
+      if (result.success) {
+        // The redirect will happen automatically via OAuth flow
+        // No need to manually redirect here
       } else {
         setError(result.error || 'Failed to sign in with Google')
+        setIsLoading(false)
       }
     } catch (err) {
       setError('An error occurred. Please try again.')
-    } finally {
       setIsLoading(false)
     }
   }

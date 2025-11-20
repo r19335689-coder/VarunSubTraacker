@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { getCurrentUser, isAuthenticated } from '../../lib/auth'
+import { getCurrentUser, isAuthenticated, getCurrentUserAsync, checkAuthentication } from '../../lib/auth'
 import { loadSubscriptions, formatDate, Subscription, Category } from '../../lib/subscriptions'
 import TabNavigation from '../../components/TabNavigation'
 import { CategoryIcon } from '../../components/CategoryIcon'
@@ -16,18 +16,20 @@ export default function ListTab() {
   const [selectedCategory, setSelectedCategory] = useState<Category | 'All'>('All')
   const [timeFilter, setTimeFilter] = useState<'All' | 'This Week' | 'This Month' | 'Next Month'>('All')
 
-  const loadData = () => {
+  const loadData = async () => {
     if (typeof window === 'undefined') return
     
-    if (!isAuthenticated()) {
+    const isAuth = await checkAuthentication()
+    if (!isAuth) {
       router.push('/')
       return
     }
 
-    const user = getCurrentUser()
+    const user = await getCurrentUserAsync()
     if (user) {
       setCurrentUser(user)
-      const loaded = loadSubscriptions(user.username)
+      const userKey = user.id || user.username
+      const loaded = loadSubscriptions(userKey)
       setSubscriptions(loaded)
     }
   }
@@ -40,7 +42,8 @@ export default function ListTab() {
   useEffect(() => {
     const handleFocus = () => {
       if (currentUser) {
-        const loaded = loadSubscriptions(currentUser.username)
+        const userKey = currentUser.id || currentUser.username
+        const loaded = loadSubscriptions(userKey)
         setSubscriptions(loaded)
       }
     }

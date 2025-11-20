@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { getCurrentUser, isAuthenticated } from '../lib/auth'
+import { getCurrentUser, isAuthenticated, getCurrentUserAsync, checkAuthentication } from '../lib/auth'
 import { loadSubscriptions, calculateTotalMonthlyCost, countRenewalsThisWeek, Subscription } from '../lib/subscriptions'
 import TabNavigation from '../components/TabNavigation'
 
@@ -12,18 +12,21 @@ export default function HomeTab() {
   const [currentUser, setCurrentUser] = useState<{ username: string; fullName?: string } | null>(null)
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([])
 
-  const loadData = () => {
+  const loadData = async () => {
     if (typeof window === 'undefined') return
     
-    if (!isAuthenticated()) {
+    const isAuth = await checkAuthentication()
+    if (!isAuth) {
       router.push('/')
       return
     }
 
-    const user = getCurrentUser()
+    const user = await getCurrentUserAsync()
     if (user) {
       setCurrentUser(user)
-      const loaded = loadSubscriptions(user.username)
+      // Use user ID for Supabase users, username for local users
+      const userKey = user.id || user.username
+      const loaded = loadSubscriptions(userKey)
       setSubscriptions(loaded)
     }
   }
@@ -36,7 +39,8 @@ export default function HomeTab() {
   useEffect(() => {
     const handleFocus = () => {
       if (currentUser) {
-        const loaded = loadSubscriptions(currentUser.username)
+        const userKey = currentUser.id || currentUser.username
+        const loaded = loadSubscriptions(userKey)
         setSubscriptions(loaded)
       }
     }
@@ -55,7 +59,7 @@ export default function HomeTab() {
   return (
     <div className="min-h-screen bg-black pb-20">
       <div className="max-w-md mx-auto px-4 pt-8">
-        {/* Header */}
+      {/* Header */}
         <div className="mb-6">
           <div className="flex items-center gap-2 mb-1">
             <svg className="w-6 h-6 text-pastel-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -63,20 +67,20 @@ export default function HomeTab() {
             </svg>
             <h1 className="text-2xl font-bold text-white">
               Welcome back, {currentUser.fullName || currentUser.username}
-            </h1>
-          </div>
+          </h1>
+                  </div>
           <p className="text-gray-400 text-sm">Here's your subscription overview</p>
-        </div>
+                </div>
 
         {/* Total Monthly Spend Card */}
         <div className="bg-pastel-blue rounded-2xl p-6 mb-4">
-          <div className="flex items-start mb-2">
-            <svg className="w-7 h-7 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="flex items-baseline gap-2">
+            <svg className="w-10 h-10 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-          </div>
-          <div className="text-black text-4xl font-bold">
-            {totalMonthlyCost.toFixed(2)}
+            <div className="text-black text-4xl font-bold">
+              {totalMonthlyCost.toFixed(2)}
+            </div>
           </div>
         </div>
 
@@ -117,8 +121,8 @@ export default function HomeTab() {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
           </svg>
         </Link>
-      </div>
-
+            </div>
+            
       <TabNavigation />
     </div>
   )

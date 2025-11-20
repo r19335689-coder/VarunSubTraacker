@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { getCurrentUser, isAuthenticated } from '../../lib/auth'
+import { getCurrentUser, isAuthenticated, getCurrentUserAsync, checkAuthentication } from '../../lib/auth'
 import TabNavigation from '../../components/TabNavigation'
 
 type NotificationTimeframe = '1 day' | '3 days' | '1 week' | '2 weeks'
@@ -23,26 +23,30 @@ export default function SettingsTab() {
   })
 
   useEffect(() => {
-    if (typeof window === 'undefined') return
-    
-    if (!isAuthenticated()) {
-      router.push('/')
-      return
-    }
+    const loadData = async () => {
+      if (typeof window === 'undefined') return
+      
+      const isAuth = await checkAuthentication()
+      if (!isAuth) {
+        router.push('/')
+        return
+      }
 
-    const user = getCurrentUser()
-    if (user) {
-      setCurrentUser(user)
-      // Load settings from localStorage
-      const stored = localStorage.getItem(NOTIFICATION_SETTINGS_KEY)
-      if (stored) {
-        try {
-          setSettings(JSON.parse(stored))
-        } catch {
-          // Use defaults
+      const user = await getCurrentUserAsync()
+      if (user) {
+        setCurrentUser(user)
+        // Load settings from localStorage
+        const stored = localStorage.getItem(NOTIFICATION_SETTINGS_KEY)
+        if (stored) {
+          try {
+            setSettings(JSON.parse(stored))
+          } catch {
+            // Use defaults
+          }
         }
       }
     }
+    loadData()
   }, [router])
 
   useEffect(() => {

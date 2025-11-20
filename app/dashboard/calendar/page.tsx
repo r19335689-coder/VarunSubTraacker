@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Calendar from 'react-calendar'
 import 'react-calendar/dist/Calendar.css'
-import { getCurrentUser, isAuthenticated } from '../../lib/auth'
+import { getCurrentUser, isAuthenticated, getCurrentUserAsync, checkAuthentication } from '../../lib/auth'
 import { loadSubscriptions, Subscription } from '../../lib/subscriptions'
 import TabNavigation from '../../components/TabNavigation'
 
@@ -19,18 +19,20 @@ export default function CalendarTab() {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date())
   const [viewDate, setViewDate] = useState<Date>(new Date())
 
-  const loadData = () => {
+  const loadData = async () => {
     if (typeof window === 'undefined') return
     
-    if (!isAuthenticated()) {
+    const isAuth = await checkAuthentication()
+    if (!isAuth) {
       router.push('/')
       return
     }
 
-    const user = getCurrentUser()
+    const user = await getCurrentUserAsync()
     if (user) {
       setCurrentUser(user)
-      const loaded = loadSubscriptions(user.username)
+      const userKey = user.id || user.username
+      const loaded = loadSubscriptions(userKey)
       setSubscriptions(loaded)
     }
   }
@@ -43,7 +45,8 @@ export default function CalendarTab() {
   useEffect(() => {
     const handleFocus = () => {
       if (currentUser) {
-        const loaded = loadSubscriptions(currentUser.username)
+        const userKey = currentUser.id || currentUser.username
+        const loaded = loadSubscriptions(userKey)
         setSubscriptions(loaded)
       }
     }

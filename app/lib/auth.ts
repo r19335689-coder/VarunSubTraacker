@@ -1,5 +1,7 @@
 // Authentication Utilities
 
+import { supabase } from './supabase'
+
 export interface User {
   username: string
   password: string // In production, this should be hashed
@@ -9,6 +11,8 @@ export interface User {
 export interface CurrentUser {
   username: string
   fullName?: string
+  email?: string
+  id?: string
 }
 
 const USERS_KEY = 'users'
@@ -55,15 +59,72 @@ export const loginUser = (username: string, password: string): { success: boolea
   return { success: true }
 }
 
-// Placeholder for Google OAuth sign-in (to be implemented with Supabase)
+// Google OAuth sign-in with Supabase
 export const signInWithGoogle = async (): Promise<{ success: boolean; error?: string; user?: CurrentUser }> => {
-  // TODO: Implement Google OAuth with Supabase
-  // This is a placeholder that will be replaced when Supabase is set up
-  return { success: false, error: 'Google sign-in not yet implemented' }
+  try {
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback`,
+      },
+    })
+
+    if (error) {
+      return { success: false, error: error.message }
+    }
+
+    // The redirect will happen automatically, so we return success
+    // The actual user will be set in the callback handler
+    return { success: true }
+  } catch (err: any) {
+    return { success: false, error: err.message || 'Failed to sign in with Google' }
+  }
 }
 
-export const logoutUser = (): void => {
+// Get current Supabase user
+export const getSupabaseUser = async (): Promise<CurrentUser | null> => {
+  try {
+    const { data: { user }, error } = await supabase.auth.getUser()
+    
+    if (error || !user) {
+      return null
+    }
+
+    // Get user metadata (full name from Google profile)
+    const fullName = user.user_metadata?.full_name || 
+                     user.user_metadata?.name || 
+                     `${user.user_metadata?.first_name || ''} ${user.user_metadata?.last_name || ''}`.trim() ||
+                     user.email?.split('@')[0] || 
+                     'User'
+
+    return {
+      id: user.id,
+      username: user.email?.split('@')[0] || user.id,
+      email: user.email,
+      fullName: fullName || undefined,
+    }
+  } catch {
+    return null
+  }
+}
+
+// Check if user is authenticated with Supabase
+export const isSupabaseAuthenticated = async (): Promise<boolean> => {
+  const user = await getSupabaseUser()
+  return user !== null
+}
+
+export const logoutUser = async (): Promise<void> => {
   if (typeof window === 'undefined') return
+  
+  // Logout from Supabase
+  try {
+    await supabase.auth.signOut()
+  } catch (err) {
+    console.error('Error signing out from Supabase:', err)
+  }
+  
+  // Clear local storage
   localStorage.removeItem(CURRENT_USER_KEY)
 }
 
@@ -82,6 +143,25 @@ export const getCurrentUser = (): CurrentUser | null => {
 
 export const isAuthenticated = (): boolean => {
   return getCurrentUser() !== null
+}
+
+// Combined auth check - checks both Supabase and local auth
+export const checkAuthentication = async (): Promise<boolean> => {
+  const supabaseAuth = await isSupabaseAuthenticated()
+  const localAuth = isAuthenticated()
+  return supabaseAuth || localAuth
+}
+
+// Get current user (checks Supabase first, then local)
+export const getCurrentUserAsync = async (): Promise<CurrentUser | null> => {
+  // Try Supabase first
+  const supabaseUser = await getSupabaseUser()
+  if (supabaseUser) {
+    return supabaseUser
+  }
+  
+  // Fall back to local auth
+  return getCurrentUser()
 }
 
 const getUsers = (): User[] => {

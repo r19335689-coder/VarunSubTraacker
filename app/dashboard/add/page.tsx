@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { getCurrentUser, isAuthenticated } from '../../lib/auth'
+import { getCurrentUser, isAuthenticated, getCurrentUserAsync, checkAuthentication } from '../../lib/auth'
 import { saveSubscriptions, loadSubscriptions, Subscription, Category, Cycle, Status } from '../../lib/subscriptions'
 import { CategoryIcon } from '../../components/CategoryIcon'
 
@@ -21,19 +21,24 @@ export default function AddSubscriptionPage() {
   const [formErrors, setFormErrors] = useState<Record<string, string>>({})
 
   useEffect(() => {
-    if (typeof window === 'undefined') return
-    
-    if (!isAuthenticated()) {
-      router.push('/')
-      return
-    }
+    const loadData = async () => {
+      if (typeof window === 'undefined') return
+      
+      const isAuth = await checkAuthentication()
+      if (!isAuth) {
+        router.push('/')
+        return
+      }
 
-    const user = getCurrentUser()
-    if (user) {
-      setCurrentUser(user)
-      const loaded = loadSubscriptions(user.username)
-      setSubscriptions(loaded)
+      const user = await getCurrentUserAsync()
+      if (user) {
+        setCurrentUser(user)
+        const userKey = user.id || user.username
+        const loaded = loadSubscriptions(userKey)
+        setSubscriptions(loaded)
+      }
     }
+    loadData()
   }, [router])
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -94,7 +99,8 @@ export default function AddSubscriptionPage() {
 
     const updatedSubscriptions = [...subscriptions, newSubscription]
     setSubscriptions(updatedSubscriptions)
-    saveSubscriptions(updatedSubscriptions, currentUser.username)
+    const userKey = currentUser.id || currentUser.username
+    saveSubscriptions(updatedSubscriptions, userKey)
     
     router.back()
   }
