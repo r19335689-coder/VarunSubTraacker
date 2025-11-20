@@ -99,7 +99,7 @@ export default function AddSubscriptionPage() {
 
     const updatedSubscriptions = [...subscriptions, newSubscription]
     setSubscriptions(updatedSubscriptions)
-    const userKey = currentUser.id || currentUser.username
+    const userKey = currentUser?.id || currentUser?.username || ''
     saveSubscriptions(updatedSubscriptions, userKey)
     
     router.back()
