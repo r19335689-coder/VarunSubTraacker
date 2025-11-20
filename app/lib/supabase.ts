@@ -22,10 +22,23 @@ export function getSupabaseClient(): SupabaseClient {
       // Return placeholder client if env vars are missing
       supabaseClient = createClient(
         'https://placeholder.supabase.co',
-        'placeholder-key'
+        'placeholder-key',
+        {
+          auth: {
+            persistSession: true,
+            autoRefreshToken: true,
+            detectSessionInUrl: true,
+          },
+        }
       )
     } else {
-      supabaseClient = createClient(supabaseUrl, supabaseAnonKey)
+      supabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
+        auth: {
+          persistSession: true,
+          autoRefreshToken: true,
+          detectSessionInUrl: true,
+        },
+      })
     }
   }
 

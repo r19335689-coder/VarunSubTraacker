@@ -11,24 +11,49 @@ export default function HomeTab() {
   const router = useRouter()
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null)
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   const loadData = async () => {
     if (typeof window === 'undefined') return
     
-    const isAuth = await checkAuthentication()
-    if (!isAuth) {
-      router.push('/')
-      return
-    }
+    try {
+      setIsLoading(true)
+      setError(null)
+      
+      // Give a small delay after OAuth redirect to ensure session is available
+      if (window.location.search.includes('code=')) {
+        await new Promise(resolve => setTimeout(resolve, 500))
+      }
+      
+      const isAuth = await checkAuthentication()
+      console.log('Auth check result:', isAuth)
+      
+      if (!isAuth) {
+        console.log('Not authenticated, redirecting to home')
+        router.push('/')
+        return
+      }
 
-    const user = await getCurrentUserAsync()
-    if (user) {
-      setCurrentUser(user)
-      // Use user ID for Supabase users, username for local users
-      const userKey = user.id || user.username
-      const userId = user.id
-      const loaded = await loadSubscriptions(userKey, userId)
-      setSubscriptions(loaded)
+      const user = await getCurrentUserAsync()
+      console.log('Current user:', user)
+      
+      if (user) {
+        setCurrentUser(user)
+        // Use user ID for Supabase users, username for local users
+        const userKey = user.id || user.username
+        const userId = user.id
+        const loaded = await loadSubscriptions(userKey, userId)
+        setSubscriptions(loaded)
+      } else {
+        console.error('Failed to load user - user is null')
+        setError('Failed to load user data. Please try logging in again.')
+      }
+    } catch (err: any) {
+      console.error('Error loading dashboard data:', err)
+      setError(err.message || 'Failed to load dashboard')
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -50,8 +75,34 @@ export default function HomeTab() {
     return () => window.removeEventListener('focus', handleFocus)
   }, [currentUser])
 
-  if (!currentUser) {
-    return null
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="text-white text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pastel-blue mx-auto mb-4"></div>
+          <p className="text-gray-400">Loading...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (error || !currentUser) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center px-4">
+        <div className="text-center">
+          <p className="text-red-400 mb-4">{error || 'Failed to load user data'}</p>
+          <button
+            onClick={() => {
+              setError(null)
+              loadData()
+            }}
+            className="px-4 py-2 bg-pastel-blue text-black rounded-lg font-semibold"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    )
   }
 
   const totalMonthlyCost = calculateTotalMonthlyCost(subscriptions)

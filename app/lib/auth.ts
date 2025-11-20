@@ -102,15 +102,31 @@ export const getSupabaseUser = async (): Promise<CurrentUser | null> => {
     // Lazy load Supabase only on client
     const supabaseModule = await import('./supabase-client').catch(() => null)
     if (!supabaseModule) {
+      console.log('Supabase module not available')
       return null
     }
     const supabase = await supabaseModule.getSupabaseClient()
     
+    // First check if we have a session
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+    if (sessionError) {
+      console.error('Error getting session:', sessionError)
+    }
+    
+    // Try to get the user
     const { data: { user }, error } = await supabase.auth.getUser()
     
-    if (error || !user) {
+    if (error) {
+      console.error('Error getting user:', error)
       return null
     }
+    
+    if (!user) {
+      console.log('No user found in Supabase')
+      return null
+    }
+
+    console.log('Supabase user found:', user.email)
 
     // Get user metadata (full name from Google profile)
     const fullName = user.user_metadata?.full_name || 
@@ -125,7 +141,8 @@ export const getSupabaseUser = async (): Promise<CurrentUser | null> => {
       email: user.email,
       fullName: fullName || undefined,
     }
-  } catch {
+  } catch (err) {
+    console.error('Error in getSupabaseUser:', err)
     return null
   }
 }
