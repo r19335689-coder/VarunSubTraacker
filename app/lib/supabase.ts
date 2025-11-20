@@ -3,7 +3,7 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js'
 // Client-side only Supabase client
 let supabaseClient: SupabaseClient | null = null
 
-function getSupabaseClient(): SupabaseClient {
+export function getSupabaseClient(): SupabaseClient {
   // Only create client on client-side
   if (typeof window === 'undefined') {
     // Return a minimal client for server-side (won't be used)
@@ -31,7 +31,4 @@ function getSupabaseClient(): SupabaseClient {
 
   return supabaseClient
 }
-
-// Export getter function - use dynamic import in auth functions
-export { getSupabaseClient }
 

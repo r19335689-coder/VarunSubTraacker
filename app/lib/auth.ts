@@ -65,8 +65,9 @@ export const signInWithGoogle = async (): Promise<{ success: boolean; error?: st
       return { success: false, error: 'Not available on server' }
     }
 
-    const { getSupabaseClient } = await import('./supabase')
-    const supabase = getSupabaseClient()
+    // Lazy load Supabase only on client
+    const supabaseModule = await import('./supabase')
+    const supabase = supabaseModule.getSupabaseClient()
     
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
@@ -95,8 +96,9 @@ export const getSupabaseUser = async (): Promise<CurrentUser | null> => {
       return null
     }
 
-    const { getSupabaseClient } = await import('./supabase')
-    const supabase = getSupabaseClient()
+    // Lazy load Supabase only on client
+    const supabaseModule = await import('./supabase')
+    const supabase = supabaseModule.getSupabaseClient()
     
     const { data: { user }, error } = await supabase.auth.getUser()
     
@@ -133,8 +135,8 @@ export const logoutUser = async (): Promise<void> => {
   
   // Logout from Supabase
   try {
-    const { getSupabaseClient } = await import('./supabase')
-    const supabase = getSupabaseClient()
+    const supabaseModule = await import('./supabase')
+    const supabase = supabaseModule.getSupabaseClient()
     await supabase.auth.signOut()
   } catch (err) {
     console.error('Error signing out from Supabase:', err)

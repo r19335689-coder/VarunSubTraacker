@@ -9,6 +9,11 @@ const nextConfig = {
         tls: false,
       }
     }
+    // Ensure Supabase modules are properly externalized
+    config.externals = config.externals || []
+    if (isServer) {
+      config.externals.push('@supabase/supabase-js')
+    }
     return config
   },
 }
