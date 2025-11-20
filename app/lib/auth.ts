@@ -3,12 +3,18 @@
 export interface User {
   username: string
   password: string // In production, this should be hashed
+  fullName?: string
+}
+
+export interface CurrentUser {
+  username: string
+  fullName?: string
 }
 
 const USERS_KEY = 'users'
 const CURRENT_USER_KEY = 'currentUser'
 
-export const registerUser = (username: string, password: string): { success: boolean; error?: string } => {
+export const registerUser = (username: string, password: string, fullName?: string): { success: boolean; error?: string } => {
   if (typeof window === 'undefined') return { success: false, error: 'Not available' }
   
   if (!username.trim()) {
@@ -25,7 +31,7 @@ export const registerUser = (username: string, password: string): { success: boo
     return { success: false, error: 'Username already exists' }
   }
   
-  users.push({ username, password })
+  users.push({ username, password, fullName })
   localStorage.setItem(USERS_KEY, JSON.stringify(users))
   
   return { success: true }
@@ -41,7 +47,7 @@ export const loginUser = (username: string, password: string): { success: boolea
     return { success: false, error: 'Invalid username or password' }
   }
   
-  localStorage.setItem(CURRENT_USER_KEY, JSON.stringify({ username: user.username }))
+  localStorage.setItem(CURRENT_USER_KEY, JSON.stringify({ username: user.username, fullName: user.fullName }))
   
   // Migrate old subscriptions if they exist
   migrateOldSubscriptions(user.username)
@@ -49,12 +55,19 @@ export const loginUser = (username: string, password: string): { success: boolea
   return { success: true }
 }
 
+// Placeholder for Google OAuth sign-in (to be implemented with Supabase)
+export const signInWithGoogle = async (): Promise<{ success: boolean; error?: string; user?: CurrentUser }> => {
+  // TODO: Implement Google OAuth with Supabase
+  // This is a placeholder that will be replaced when Supabase is set up
+  return { success: false, error: 'Google sign-in not yet implemented' }
+}
+
 export const logoutUser = (): void => {
   if (typeof window === 'undefined') return
   localStorage.removeItem(CURRENT_USER_KEY)
 }
 
-export const getCurrentUser = (): { username: string } | null => {
+export const getCurrentUser = (): CurrentUser | null => {
   if (typeof window === 'undefined') return null
   
   const stored = localStorage.getItem(CURRENT_USER_KEY)

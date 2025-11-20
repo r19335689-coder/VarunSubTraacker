@@ -2,3 +2,23 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer base {
+  body {
+    @apply bg-black text-white;
+  }
+  
+  * {
+    @apply border-gray-800;
+  }
+}
+
+@layer utilities {
+  .mobile-container {
+    @apply max-w-md mx-auto px-4;
+  }
+  
+  .touch-target {
+    @apply min-h-[44px] min-w-[44px];
+  }
+}
+
