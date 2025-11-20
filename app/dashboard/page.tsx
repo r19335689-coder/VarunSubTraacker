@@ -100,12 +100,16 @@ export default function HomeTab() {
   }
 
   useEffect(() => {
-    // Only load data on client side
-    if (typeof window !== 'undefined') {
+    setMounted(true)
+  }, [])
+
+  useEffect(() => {
+    // Only load data on client side after mount
+    if (mounted && typeof window !== 'undefined') {
       loadData()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [mounted])
 
   // Reload data when page comes into focus (e.g., returning from add page)
   useEffect(() => {
