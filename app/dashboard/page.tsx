@@ -21,13 +21,21 @@ export default function HomeTab() {
       setIsLoading(true)
       setError(null)
       
-      // Handle OAuth callback - check for tokens in URL hash
+      // Handle OAuth callback - check for tokens in URL hash first
       const hashParams = new URLSearchParams(window.location.hash.substring(1))
       const accessToken = hashParams.get('access_token')
       const refreshToken = hashParams.get('refresh_token')
+      const errorParam = hashParams.get('error')
+      
+      if (errorParam) {
+        console.error('OAuth error in URL hash:', errorParam)
+        setError(`OAuth error: ${errorParam}`)
+        setIsLoading(false)
+        return
+      }
       
       if (accessToken && refreshToken) {
-        console.log('Found OAuth tokens in URL, setting session...')
+        console.log('Found OAuth tokens in URL hash, setting session...')
         try {
           const { getSupabaseClient } = await import('../lib/supabase-client')
           const supabase = await getSupabaseClient()
@@ -37,20 +45,26 @@ export default function HomeTab() {
           })
           
           if (setError) {
-            console.error('Error setting session:', setError)
+            console.error('Error setting session from URL hash:', setError)
+            setError('Failed to set session. Please try logging in again.')
+            setIsLoading(false)
+            return
           } else if (data?.session) {
-            console.log('Session set successfully')
+            console.log('Session set successfully from URL hash')
             // Clean up URL hash
-            window.history.replaceState(null, '', window.location.pathname)
+            window.history.replaceState(null, '', window.location.pathname + window.location.search)
           }
         } catch (err) {
           console.error('Error handling OAuth tokens:', err)
+          setError('Failed to process OAuth tokens. Please try logging in again.')
+          setIsLoading(false)
+          return
         }
       }
       
       // Give a small delay after OAuth redirect to ensure session is available
       if (window.location.search.includes('code=') || accessToken) {
-        await new Promise(resolve => setTimeout(resolve, 1000))
+        await new Promise(resolve => setTimeout(resolve, 500))
       }
       
       const isAuth = await checkAuthentication()

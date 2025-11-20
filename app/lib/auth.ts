@@ -76,6 +76,10 @@ export const signInWithGoogle = async (): Promise<{ success: boolean; error?: st
       provider: 'google',
       options: {
         redirectTo: `${window.location.origin}/auth/callback`,
+        queryParams: {
+          access_type: 'offline',
+          prompt: 'consent',
+        },
       },
     })
 
@@ -107,14 +111,43 @@ export const getSupabaseUser = async (): Promise<CurrentUser | null> => {
     }
     const supabase = await supabaseModule.getSupabaseClient()
     
-    // First check if we have a session - this will also refresh if needed
+    // First, check if there are tokens in the URL hash (from OAuth redirect)
+    const hashParams = new URLSearchParams(window.location.hash.substring(1))
+    const accessToken = hashParams.get('access_token')
+    const refreshToken = hashParams.get('refresh_token')
+    const errorParam = hashParams.get('error')
+    
+    if (errorParam) {
+      console.error('OAuth error in URL:', errorParam)
+      return null
+    }
+    
+    // If we have tokens in the URL, set the session first
+    if (accessToken && refreshToken) {
+      console.log('Found OAuth tokens in URL, setting session...')
+      const { data: sessionData, error: setError } = await supabase.auth.setSession({
+        access_token: accessToken,
+        refresh_token: refreshToken,
+      })
+      
+      if (setError) {
+        console.error('Error setting session from URL:', setError)
+      } else if (sessionData?.user) {
+        console.log('Session set successfully from URL')
+        // Clean up URL hash
+        window.history.replaceState(null, '', window.location.pathname + window.location.search)
+      }
+    }
+    
+    // Check if we have a session - this will also refresh if needed
     const { data: { session }, error: sessionError } = await supabase.auth.getSession()
     if (sessionError) {
       console.error('Error getting session:', sessionError)
     }
     
     if (!session) {
-      console.log('No session found, trying to get user anyway...')
+      console.log('No session found after checking URL and localStorage')
+      return null
     }
     
     // Try to get the user - this will use the session if available
@@ -122,39 +155,6 @@ export const getSupabaseUser = async (): Promise<CurrentUser | null> => {
     
     if (error) {
       console.error('Error getting user:', error)
-      // If it's a session missing error, try refreshing
-      if (error.message.includes('session') || error.message.includes('AuthSessionMissingError')) {
-        console.log('Session missing, attempting to refresh from URL...')
-        // The session might be in the URL hash, try to get it
-        const hashParams = new URLSearchParams(window.location.hash.substring(1))
-        const accessToken = hashParams.get('access_token')
-        const refreshToken = hashParams.get('refresh_token')
-        
-        if (accessToken && refreshToken) {
-          // Set the session manually
-          const { data: sessionData, error: setError } = await supabase.auth.setSession({
-            access_token: accessToken,
-            refresh_token: refreshToken,
-          })
-          
-          if (!setError && sessionData?.user) {
-            console.log('Session restored from URL')
-            const restoredUser = sessionData.user
-            const fullName = restoredUser.user_metadata?.full_name || 
-                             restoredUser.user_metadata?.name || 
-                             `${restoredUser.user_metadata?.first_name || ''} ${restoredUser.user_metadata?.last_name || ''}`.trim() ||
-                             restoredUser.email?.split('@')[0] || 
-                             'User'
-            
-            return {
-              id: restoredUser.id,
-              username: restoredUser.email?.split('@')[0] || restoredUser.id,
-              email: restoredUser.email,
-              fullName: fullName || undefined,
-            }
-          }
-        }
-      }
       return null
     }
     
