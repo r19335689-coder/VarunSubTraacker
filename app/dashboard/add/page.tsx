@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { getCurrentUser, isAuthenticated, getCurrentUserAsync, checkAuthentication, CurrentUser } from '../../lib/auth'
-import { saveSubscriptions, loadSubscriptions, Subscription, Category, Cycle, Status } from '../../lib/subscriptions'
+import { saveSubscriptionToDB, loadSubscriptions, Subscription, Category, Cycle, Status, saveSubscriptions } from '../../lib/subscriptions'
 import { CategoryIcon } from '../../components/CategoryIcon'
 
 export default function AddSubscriptionPage() {
@@ -34,7 +34,8 @@ export default function AddSubscriptionPage() {
       if (user) {
         setCurrentUser(user)
         const userKey = user.id || user.username
-        const loaded = loadSubscriptions(userKey)
+        const userId = user.id
+        const loaded = await loadSubscriptions(userKey, userId)
         setSubscriptions(loaded)
       }
     }
@@ -82,7 +83,7 @@ export default function AddSubscriptionPage() {
     return Object.keys(errors).length === 0
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
     if (!validateForm() || !currentUser) return
@@ -97,10 +98,22 @@ export default function AddSubscriptionPage() {
       category: formData.category
     }
 
-    const updatedSubscriptions = [...subscriptions, newSubscription]
-    setSubscriptions(updatedSubscriptions)
     const userKey = currentUser?.id || currentUser?.username || ''
-    saveSubscriptions(updatedSubscriptions, userKey)
+    const userId = currentUser?.id
+
+    // Try saving to database first, fall back to localStorage
+    if (userId) {
+      const success = await saveSubscriptionToDB(newSubscription, userId)
+      if (!success) {
+        // Fall back to saving all subscriptions
+        const updatedSubscriptions = [...subscriptions, newSubscription]
+        await saveSubscriptions(updatedSubscriptions, userKey, userId)
+      }
+    } else {
+      // Local auth - save to localStorage
+      const updatedSubscriptions = [...subscriptions, newSubscription]
+      await saveSubscriptions(updatedSubscriptions, userKey)
+    }
     
     router.back()
   }

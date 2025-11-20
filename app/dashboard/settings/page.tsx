@@ -3,16 +3,8 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { getCurrentUser, isAuthenticated, getCurrentUserAsync, checkAuthentication, CurrentUser } from '../../lib/auth'
+import { loadNotificationSettings, saveNotificationSettings, NotificationSettings, NotificationTimeframe } from '../../lib/notifications'
 import TabNavigation from '../../components/TabNavigation'
-
-type NotificationTimeframe = '1 day' | '3 days' | '1 week' | '2 weeks'
-
-interface NotificationSettings {
-  emailEnabled: boolean
-  timeframe: NotificationTimeframe
-}
-
-const NOTIFICATION_SETTINGS_KEY = 'notification_settings'
 
 export default function SettingsTab() {
   const router = useRouter()
@@ -35,24 +27,20 @@ export default function SettingsTab() {
       const user = await getCurrentUserAsync()
       if (user) {
         setCurrentUser(user)
-        // Load settings from localStorage
-        const stored = localStorage.getItem(NOTIFICATION_SETTINGS_KEY)
-        if (stored) {
-          try {
-            setSettings(JSON.parse(stored))
-          } catch {
-            // Use defaults
-          }
-        }
+        // Load settings from database or localStorage
+        const userId = user.id
+        const loadedSettings = await loadNotificationSettings(userId)
+        setSettings(loadedSettings)
       }
     }
     loadData()
   }, [router])
 
   useEffect(() => {
-    // Save settings to localStorage whenever they change
+    // Save settings to database or localStorage whenever they change
     if (currentUser) {
-      localStorage.setItem(NOTIFICATION_SETTINGS_KEY, JSON.stringify(settings))
+      const userId = currentUser.id
+      saveNotificationSettings(settings, userId)
     }
   }, [settings, currentUser])
 

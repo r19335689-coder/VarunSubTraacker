@@ -32,7 +32,8 @@ export default function CalendarTab() {
     if (user) {
       setCurrentUser(user)
       const userKey = user.id || user.username
-      const loaded = loadSubscriptions(userKey)
+      const userId = user.id
+      const loaded = await loadSubscriptions(userKey, userId)
       setSubscriptions(loaded)
     }
   }
@@ -43,10 +44,11 @@ export default function CalendarTab() {
 
   // Reload data when page comes into focus
   useEffect(() => {
-    const handleFocus = () => {
+    const handleFocus = async () => {
       if (currentUser) {
         const userKey = currentUser.id || currentUser.username
-        const loaded = loadSubscriptions(userKey)
+        const userId = currentUser.id
+        const loaded = await loadSubscriptions(userKey, userId)
         setSubscriptions(loaded)
       }
     }

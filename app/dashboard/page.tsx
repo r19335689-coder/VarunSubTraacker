@@ -26,7 +26,8 @@ export default function HomeTab() {
       setCurrentUser(user)
       // Use user ID for Supabase users, username for local users
       const userKey = user.id || user.username
-      const loaded = loadSubscriptions(userKey)
+      const userId = user.id
+      const loaded = await loadSubscriptions(userKey, userId)
       setSubscriptions(loaded)
     }
   }
@@ -37,10 +38,11 @@ export default function HomeTab() {
 
   // Reload data when page comes into focus (e.g., returning from add page)
   useEffect(() => {
-    const handleFocus = () => {
+    const handleFocus = async () => {
       if (currentUser) {
         const userKey = currentUser.id || currentUser.username
-        const loaded = loadSubscriptions(userKey)
+        const userId = currentUser.id
+        const loaded = await loadSubscriptions(userKey, userId)
         setSubscriptions(loaded)
       }
     }

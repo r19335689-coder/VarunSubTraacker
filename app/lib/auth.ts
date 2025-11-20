@@ -174,7 +174,13 @@ export const checkAuthentication = async (): Promise<boolean> => {
 export const getCurrentUserAsync = async (): Promise<CurrentUser | null> => {
   // Try Supabase first
   const supabaseUser = await getSupabaseUser()
-  if (supabaseUser) {
+  if (supabaseUser && supabaseUser.id) {
+    // Migrate subscriptions from localStorage if needed
+    if (typeof window !== 'undefined') {
+      const { migrateSubscriptionsToDB } = await import('./subscriptions')
+      const username = supabaseUser.username
+      await migrateSubscriptionsToDB(supabaseUser.id, username)
+    }
     return supabaseUser
   }
   
