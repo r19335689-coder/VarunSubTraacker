@@ -1,12 +1,37 @@
-import { createClient } from '@supabase/supabase-js'
+import { createClient, SupabaseClient } from '@supabase/supabase-js'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
+// Client-side only Supabase client
+let supabaseClient: SupabaseClient | null = null
 
-// Create client with empty strings if env vars are missing (for build time)
-// The client will only be used at runtime when env vars are available
-export const supabase = createClient(
-  supabaseUrl || 'https://placeholder.supabase.co',
-  supabaseAnonKey || 'placeholder-key'
-)
+function getSupabaseClient(): SupabaseClient {
+  // Only create client on client-side
+  if (typeof window === 'undefined') {
+    // Return a minimal client for server-side (won't be used)
+    return createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co',
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-key'
+    )
+  }
+
+  // Client-side: create singleton instance
+  if (!supabaseClient) {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
+    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
+
+    if (!supabaseUrl || !supabaseAnonKey) {
+      // Return placeholder client if env vars are missing
+      supabaseClient = createClient(
+        'https://placeholder.supabase.co',
+        'placeholder-key'
+      )
+    } else {
+      supabaseClient = createClient(supabaseUrl, supabaseAnonKey)
+    }
+  }
+
+  return supabaseClient
+}
+
+// Export getter function - use dynamic import in auth functions
+export { getSupabaseClient }
 

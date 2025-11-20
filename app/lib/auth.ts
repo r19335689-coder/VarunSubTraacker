@@ -1,7 +1,5 @@
 // Authentication Utilities
 
-import { supabase } from './supabase'
-
 export interface User {
   username: string
   password: string // In production, this should be hashed
@@ -62,6 +60,14 @@ export const loginUser = (username: string, password: string): { success: boolea
 // Google OAuth sign-in with Supabase
 export const signInWithGoogle = async (): Promise<{ success: boolean; error?: string; user?: CurrentUser }> => {
   try {
+    // Only run on client-side
+    if (typeof window === 'undefined') {
+      return { success: false, error: 'Not available on server' }
+    }
+
+    const { getSupabaseClient } = await import('./supabase')
+    const supabase = getSupabaseClient()
+    
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
@@ -84,6 +90,14 @@ export const signInWithGoogle = async (): Promise<{ success: boolean; error?: st
 // Get current Supabase user
 export const getSupabaseUser = async (): Promise<CurrentUser | null> => {
   try {
+    // Only run on client-side
+    if (typeof window === 'undefined') {
+      return null
+    }
+
+    const { getSupabaseClient } = await import('./supabase')
+    const supabase = getSupabaseClient()
+    
     const { data: { user }, error } = await supabase.auth.getUser()
     
     if (error || !user) {
@@ -119,6 +133,8 @@ export const logoutUser = async (): Promise<void> => {
   
   // Logout from Supabase
   try {
+    const { getSupabaseClient } = await import('./supabase')
+    const supabase = getSupabaseClient()
     await supabase.auth.signOut()
   } catch (err) {
     console.error('Error signing out from Supabase:', err)
