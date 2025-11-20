@@ -3,13 +3,13 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { getCurrentUser, isAuthenticated, getCurrentUserAsync, checkAuthentication } from '../lib/auth'
+import { getCurrentUser, isAuthenticated, getCurrentUserAsync, checkAuthentication, CurrentUser } from '../lib/auth'
 import { loadSubscriptions, calculateTotalMonthlyCost, countRenewalsThisWeek, Subscription } from '../lib/subscriptions'
 import TabNavigation from '../components/TabNavigation'
 
 export default function HomeTab() {
   const router = useRouter()
-  const [currentUser, setCurrentUser] = useState<{ username: string; fullName?: string } | null>(null)
+  const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null)
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([])
 
   const loadData = async () => {

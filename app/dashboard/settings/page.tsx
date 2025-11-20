@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { getCurrentUser, isAuthenticated, getCurrentUserAsync, checkAuthentication } from '../../lib/auth'
+import { getCurrentUser, isAuthenticated, getCurrentUserAsync, checkAuthentication, CurrentUser } from '../../lib/auth'
 import TabNavigation from '../../components/TabNavigation'
 
 type NotificationTimeframe = '1 day' | '3 days' | '1 week' | '2 weeks'
@@ -16,7 +16,7 @@ const NOTIFICATION_SETTINGS_KEY = 'notification_settings'
 
 export default function SettingsTab() {
   const router = useRouter()
-  const [currentUser, setCurrentUser] = useState<{ username: string; fullName?: string } | null>(null)
+  const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null)
   const [settings, setSettings] = useState<NotificationSettings>({
     emailEnabled: false,
     timeframe: '3 days'

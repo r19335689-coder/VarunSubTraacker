@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Calendar from 'react-calendar'
 import 'react-calendar/dist/Calendar.css'
-import { getCurrentUser, isAuthenticated, getCurrentUserAsync, checkAuthentication } from '../../lib/auth'
+import { getCurrentUser, isAuthenticated, getCurrentUserAsync, checkAuthentication, CurrentUser } from '../../lib/auth'
 import { loadSubscriptions, Subscription } from '../../lib/subscriptions'
 import TabNavigation from '../../components/TabNavigation'
 
@@ -14,7 +14,7 @@ type Value = ValuePiece | [ValuePiece, ValuePiece]
 
 export default function CalendarTab() {
   const router = useRouter()
-  const [currentUser, setCurrentUser] = useState<{ username: string; fullName?: string } | null>(null)
+  const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null)
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([])
   const [selectedDate, setSelectedDate] = useState<Date>(new Date())
   const [viewDate, setViewDate] = useState<Date>(new Date())

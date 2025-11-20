@@ -2,13 +2,13 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { getCurrentUser, isAuthenticated, getCurrentUserAsync, checkAuthentication } from '../../lib/auth'
+import { getCurrentUser, isAuthenticated, getCurrentUserAsync, checkAuthentication, CurrentUser } from '../../lib/auth'
 import { saveSubscriptions, loadSubscriptions, Subscription, Category, Cycle, Status } from '../../lib/subscriptions'
 import { CategoryIcon } from '../../components/CategoryIcon'
 
 export default function AddSubscriptionPage() {
   const router = useRouter()
-  const [currentUser, setCurrentUser] = useState<{ username: string; fullName?: string } | null>(null)
+  const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null)
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([])
   const [formData, setFormData] = useState({
     name: '',
