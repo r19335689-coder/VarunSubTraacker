@@ -13,6 +13,7 @@ export default function HomeTab() {
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [mounted, setMounted] = useState(false)
 
   const loadData = async () => {
     if (typeof window === 'undefined') return
@@ -99,8 +100,12 @@ export default function HomeTab() {
   }
 
   useEffect(() => {
-    loadData()
-  }, [router])
+    // Only load data on client side
+    if (typeof window !== 'undefined') {
+      loadData()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // Reload data when page comes into focus (e.g., returning from add page)
   useEffect(() => {
@@ -116,7 +121,8 @@ export default function HomeTab() {
     return () => window.removeEventListener('focus', handleFocus)
   }, [currentUser])
 
-  if (isLoading) {
+  // Don't render until mounted (prevents hydration issues)
+  if (!mounted || isLoading) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
         <div className="text-white text-center">
@@ -127,20 +133,33 @@ export default function HomeTab() {
     )
   }
 
-  if (error || !currentUser) {
+  if (error) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center px-4">
         <div className="text-center">
-          <p className="text-red-400 mb-4">{error || 'Failed to load user data'}</p>
+          <p className="text-red-400 mb-4">{error}</p>
           <button
             onClick={() => {
               setError(null)
+              setIsLoading(true)
               loadData()
             }}
             className="px-4 py-2 bg-pastel-blue text-black rounded-lg font-semibold"
           >
             Retry
           </button>
+        </div>
+      </div>
+    )
+  }
+
+  if (!currentUser) {
+    // Still loading or no user - show loading state
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="text-white text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pastel-blue mx-auto mb-4"></div>
+          <p className="text-gray-400">Loading user data...</p>
         </div>
       </div>
     )
