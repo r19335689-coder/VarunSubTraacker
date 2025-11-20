@@ -38,8 +38,10 @@ export const loadSubscriptionsFromDB = async (userId: string): Promise<Subscript
   try {
     if (typeof window === 'undefined') return []
     
-    const { getSupabaseClient } = await import('./supabase-client')
-    const supabase = getSupabaseClient()
+    // Lazy load Supabase only on client
+    const supabaseModule = await import('./supabase-client').catch(() => null)
+    if (!supabaseModule) return []
+    const supabase = supabaseModule.getSupabaseClient()
     
     const { data, error } = await supabase
       .from('subscriptions')
@@ -74,8 +76,10 @@ export const saveSubscriptionsToDB = async (subscriptions: Subscription[], userI
   try {
     if (typeof window === 'undefined') return false
     
-    const { getSupabaseClient } = await import('./supabase-client')
-    const supabase = getSupabaseClient()
+    // Lazy load Supabase only on client
+    const supabaseModule = await import('./supabase-client').catch(() => null)
+    if (!supabaseModule) return false
+    const supabase = supabaseModule.getSupabaseClient()
     
     // Delete all existing subscriptions for this user
     const { error: deleteError } = await supabase
@@ -122,8 +126,10 @@ export const saveSubscriptionToDB = async (subscription: Subscription, userId: s
   try {
     if (typeof window === 'undefined') return false
     
-    const { getSupabaseClient } = await import('./supabase-client')
-    const supabase = getSupabaseClient()
+    // Lazy load Supabase only on client
+    const supabaseModule = await import('./supabase-client').catch(() => null)
+    if (!supabaseModule) return false
+    const supabase = supabaseModule.getSupabaseClient()
     
     const dbSubscription: Omit<DatabaseSubscription, 'created_at' | 'updated_at'> = {
       id: subscription.id,
@@ -187,8 +193,10 @@ export const deleteSubscriptionFromDB = async (subscriptionId: string, userId: s
   try {
     if (typeof window === 'undefined') return false
     
-    const { getSupabaseClient } = await import('./supabase-client')
-    const supabase = getSupabaseClient()
+    // Lazy load Supabase only on client
+    const supabaseModule = await import('./supabase-client').catch(() => null)
+    if (!supabaseModule) return false
+    const supabase = supabaseModule.getSupabaseClient()
     
     const { error } = await supabase
       .from('subscriptions')
