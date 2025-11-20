@@ -107,17 +107,54 @@ export const getSupabaseUser = async (): Promise<CurrentUser | null> => {
     }
     const supabase = await supabaseModule.getSupabaseClient()
     
-    // First check if we have a session
+    // First check if we have a session - this will also refresh if needed
     const { data: { session }, error: sessionError } = await supabase.auth.getSession()
     if (sessionError) {
       console.error('Error getting session:', sessionError)
     }
     
-    // Try to get the user
+    if (!session) {
+      console.log('No session found, trying to get user anyway...')
+    }
+    
+    // Try to get the user - this will use the session if available
     const { data: { user }, error } = await supabase.auth.getUser()
     
     if (error) {
       console.error('Error getting user:', error)
+      // If it's a session missing error, try refreshing
+      if (error.message.includes('session') || error.message.includes('AuthSessionMissingError')) {
+        console.log('Session missing, attempting to refresh from URL...')
+        // The session might be in the URL hash, try to get it
+        const hashParams = new URLSearchParams(window.location.hash.substring(1))
+        const accessToken = hashParams.get('access_token')
+        const refreshToken = hashParams.get('refresh_token')
+        
+        if (accessToken && refreshToken) {
+          // Set the session manually
+          const { data: sessionData, error: setError } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken,
+          })
+          
+          if (!setError && sessionData?.user) {
+            console.log('Session restored from URL')
+            const restoredUser = sessionData.user
+            const fullName = restoredUser.user_metadata?.full_name || 
+                             restoredUser.user_metadata?.name || 
+                             `${restoredUser.user_metadata?.first_name || ''} ${restoredUser.user_metadata?.last_name || ''}`.trim() ||
+                             restoredUser.email?.split('@')[0] || 
+                             'User'
+            
+            return {
+              id: restoredUser.id,
+              username: restoredUser.email?.split('@')[0] || restoredUser.id,
+              email: restoredUser.email,
+              fullName: fullName || undefined,
+            }
+          }
+        }
+      }
       return null
     }
     

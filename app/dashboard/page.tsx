@@ -21,9 +21,36 @@ export default function HomeTab() {
       setIsLoading(true)
       setError(null)
       
+      // Handle OAuth callback - check for tokens in URL hash
+      const hashParams = new URLSearchParams(window.location.hash.substring(1))
+      const accessToken = hashParams.get('access_token')
+      const refreshToken = hashParams.get('refresh_token')
+      
+      if (accessToken && refreshToken) {
+        console.log('Found OAuth tokens in URL, setting session...')
+        try {
+          const { getSupabaseClient } = await import('../lib/supabase-client')
+          const supabase = await getSupabaseClient()
+          const { data, error: setError } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken,
+          })
+          
+          if (setError) {
+            console.error('Error setting session:', setError)
+          } else if (data?.session) {
+            console.log('Session set successfully')
+            // Clean up URL hash
+            window.history.replaceState(null, '', window.location.pathname)
+          }
+        } catch (err) {
+          console.error('Error handling OAuth tokens:', err)
+        }
+      }
+      
       // Give a small delay after OAuth redirect to ensure session is available
-      if (window.location.search.includes('code=')) {
-        await new Promise(resolve => setTimeout(resolve, 500))
+      if (window.location.search.includes('code=') || accessToken) {
+        await new Promise(resolve => setTimeout(resolve, 1000))
       }
       
       const isAuth = await checkAuthentication()
